@@ -82,9 +82,9 @@ If all job vertices have reached a final state and the job is not restartable, t
 If the job can be restarted, then it will enter the *restarting* state.
 Once the job has been completely restarted, it will reach the *created* state.
 
-In case that the user cancels the job, it will go into the *cancelling* state.
+In case that the user cancels the job, it will go into the *canceling* state.
 This also entails the cancellation of all currently running tasks.
-Once all running tasks have reached a final state, the job transitions to the state *cancelled*.
+Once all running tasks have reached a final state, the job transitions to the state *canceled*.
 
 Unlike the states *finished*, *canceled* and *failed* which denote a globally terminal state and, thus, trigger the clean up of the job, the *suspended* state is only locally terminal.
 Locally terminal means that the execution of the job has been terminated on the respective JobManager but another JobManager of the Flink cluster can retrieve the job from the persistent HA store and restart it.

@@ -58,7 +58,7 @@ JobManager 会将 JobGraph 转换成 {% gh_link /flink-runtime/src/main/java/org
 
 Flink 作业刚开始会处于 *created* 状态，然后切换到 *running* 状态，当所有任务都执行完之后会切换到 *finished* 状态。如果遇到失败的话，作业首先切换到 *failing* 状态以便取消所有正在运行的 task。如果所有 job 节点都到达最终状态并且 job 无法重启， 那么 job 进入 *failed* 状态。如果作业可以重启，那么就会进入到 *restarting* 状态，当作业彻底重启之后会进入到 *created* 状态。
 
-如果用户取消了 job 话，它会进入到 *cancelling* 状态，并取消所有正在运行的 task。当所有正在运行的 task 进入到最终状态的时候，job 进入 *cancelled* 状态。
+如果用户取消了 job 话，它会进入到 *canceling* 状态，并取消所有正在运行的 task。当所有正在运行的 task 进入到最终状态的时候，job 进入 *canceled* 状态。
 
 *Finished*、*canceled* 和 *failed* 会导致全局的终结状态，并且触发作业的清理。跟这些状态不同，*suspended* 状态只是一个局部的终结。局部的终结意味着作业的执行已经被对应的 JobManager 终结，但是集群中另外的 JobManager 依然可以从高可用存储里获取作业信息并重启。因此一个处于 *suspended* 状态的作业不会被彻底清理掉。
 
