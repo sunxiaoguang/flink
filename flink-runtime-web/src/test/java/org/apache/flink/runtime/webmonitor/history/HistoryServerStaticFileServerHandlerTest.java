@@ -52,6 +52,7 @@ public class HistoryServerStaticFileServerHandlerTest {
                         null,
                         "localhost",
                         0,
+                        null,
                         new Configuration());
 
         int port = webUI.getServerPort();

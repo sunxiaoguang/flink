@@ -23,6 +23,7 @@ import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.runtime.concurrent.FutureUtils;
 import org.apache.flink.runtime.io.network.netty.SSLHandlerFactory;
+import org.apache.flink.runtime.net.BasicAuth;
 import org.apache.flink.runtime.rest.messages.EmptyMessageParameters;
 import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
 import org.apache.flink.runtime.rest.messages.ErrorResponseBody;
@@ -111,10 +112,13 @@ public class RestClient implements AutoCloseableAsync {
 
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
 
+    private final BasicAuth basicAuth;
+
     public RestClient(RestClientConfiguration configuration, Executor executor) {
         Preconditions.checkNotNull(configuration);
         this.executor = Preconditions.checkNotNull(executor);
         this.terminationFuture = new CompletableFuture<>();
+        this.basicAuth = configuration.getBasicAuth();
 
         final SSLHandlerFactory sslHandlerFactory = configuration.getSslHandlerFactory();
         ChannelInitializer<SocketChannel> initializer =
@@ -320,6 +324,7 @@ public class RestClient implements AutoCloseableAsync {
 
         Request httpRequest =
                 createRequest(
+                        basicAuth,
                         targetAddress + ':' + targetPort,
                         targetUrl,
                         messageHeaders.getHttpMethod().getNettyHttpMethod(),
@@ -345,6 +350,7 @@ public class RestClient implements AutoCloseableAsync {
     }
 
     private static Request createRequest(
+            BasicAuth basicAuth,
             String targetAddress,
             String targetUrl,
             HttpMethod httpMethod,
@@ -364,6 +370,12 @@ public class RestClient implements AutoCloseableAsync {
                     .add(HttpHeaders.Names.CONTENT_LENGTH, jsonPayload.capacity())
                     .add(HttpHeaders.Names.CONTENT_TYPE, RestConstants.REST_CONTENT_TYPE);
 
+            if (basicAuth != null) {
+                httpRequest
+                        .headers()
+                        .set(HttpHeaders.Names.AUTHORIZATION, basicAuth.getAuthorization());
+            }
+
             return new SimpleRequest(httpRequest);
         } else {
             HttpRequest httpRequest =
@@ -373,6 +385,12 @@ public class RestClient implements AutoCloseableAsync {
                     .headers()
                     .set(HttpHeaders.Names.HOST, targetAddress)
                     .set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+
+            if (basicAuth != null) {
+                httpRequest
+                        .headers()
+                        .set(HttpHeaders.Names.AUTHORIZATION, basicAuth.getAuthorization());
+            }
 
             // takes care of splitting the request into multiple parts
             HttpPostRequestEncoder bodyRequestEncoder;

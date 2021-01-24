@@ -21,6 +21,7 @@ package org.apache.flink.runtime.webmonitor.utils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.runtime.io.network.netty.SSLHandlerFactory;
+import org.apache.flink.runtime.net.BasicAuthHandler;
 import org.apache.flink.runtime.rest.handler.router.Router;
 import org.apache.flink.runtime.rest.handler.router.RouterHandler;
 import org.apache.flink.runtime.webmonitor.HttpRequestHandler;
@@ -55,6 +56,7 @@ public class WebFrontendBootstrap {
     private final ServerBootstrap bootstrap;
     private final Channel serverChannel;
     private final String restAddress;
+    private final BasicAuthHandler basicAuthHandler;
 
     public WebFrontendBootstrap(
             Router router,
@@ -63,12 +65,14 @@ public class WebFrontendBootstrap {
             @Nullable SSLHandlerFactory serverSSLFactory,
             String configuredAddress,
             int configuredPort,
+            @Nullable BasicAuthHandler basicAuthHandler,
             final Configuration config)
             throws InterruptedException, UnknownHostException {
 
         this.router = Preconditions.checkNotNull(router);
         this.log = Preconditions.checkNotNull(log);
         this.uploadDir = directory;
+        this.basicAuthHandler = basicAuthHandler;
 
         ChannelInitializer<SocketChannel> initializer =
                 new ChannelInitializer<SocketChannel>() {
@@ -87,8 +91,11 @@ public class WebFrontendBootstrap {
                                             serverSSLFactory.createNettySSLHandler(ch.alloc()));
                         }
 
+                        ch.pipeline().addLast(new HttpServerCodec());
+                        if (basicAuthHandler != null) {
+                            ch.pipeline().addLast(basicAuthHandler);
+                        }
                         ch.pipeline()
-                                .addLast(new HttpServerCodec())
                                 .addLast(new ChunkedWriteHandler())
                                 .addLast(new HttpRequestHandler(uploadDir))
                                 .addLast(handler.getName(), handler)

@@ -163,6 +163,23 @@ public class WebOptions {
                     .withDescription(
                             "Timeout for asynchronous operations by the web monitor in milliseconds.");
 
+    public static final ConfigOption<String> BASIC_AUTH_REALM =
+            key("web.basic-auth.realm")
+                    .noDefaultValue()
+                    .withDescription(
+                            "Basic access authentication realm. Server side authentication is disabled "
+                                    + "when realm is empty which is the default setting.");
+
+    public static final ConfigOption<String> BASIC_AUTH_USERNAME =
+            key("web.basic-auth.username")
+                    .noDefaultValue()
+                    .withDescription("Basic access authentication user name.");
+
+    public static final ConfigOption<String> BASIC_AUTH_PASSWORD =
+            key("web.basic-auth.password")
+                    .noDefaultValue()
+                    .withDescription("Basic access authentication password.");
+
     // ------------------------------------------------------------------------
 
     /** Not meant to be instantiated. */

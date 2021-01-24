@@ -29,6 +29,7 @@ import org.apache.flink.core.fs.Path;
 import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.runtime.history.FsJobArchivist;
 import org.apache.flink.runtime.io.network.netty.SSLHandlerFactory;
+import org.apache.flink.runtime.net.BasicAuthHandler;
 import org.apache.flink.runtime.net.SSLUtils;
 import org.apache.flink.runtime.rest.handler.router.Router;
 import org.apache.flink.runtime.rest.messages.DashboardConfiguration;
@@ -101,6 +102,9 @@ public class HistoryServer {
     private final HistoryServerArchiveFetcher archiveFetcher;
 
     @Nullable private final SSLHandlerFactory serverSSLFactory;
+
+    @Nullable private final BasicAuthHandler basicAuthHandler;
+
     private WebFrontendBootstrap netty;
 
     private final Object startupShutdownLock = new Object();
@@ -179,6 +183,13 @@ public class HistoryServer {
         webPort = config.getInteger(HistoryServerOptions.HISTORY_SERVER_WEB_PORT);
         webRefreshIntervalMillis =
                 config.getLong(HistoryServerOptions.HISTORY_SERVER_WEB_REFRESH_INTERVAL);
+
+        basicAuthHandler =
+                BasicAuthHandler.fromConfiguration(
+                        config,
+                        HistoryServerOptions.BASIC_AUTH_REALM,
+                        HistoryServerOptions.BASIC_AUTH_USERNAME,
+                        HistoryServerOptions.BASIC_AUTH_PASSWORD);
 
         String webDirectory = config.getString(HistoryServerOptions.HISTORY_SERVER_WEB_DIR);
         if (webDirectory == null) {
@@ -284,7 +295,14 @@ public class HistoryServer {
 
             netty =
                     new WebFrontendBootstrap(
-                            router, LOG, webDir, serverSSLFactory, webAddress, webPort, config);
+                            router,
+                            LOG,
+                            webDir,
+                            serverSSLFactory,
+                            webAddress,
+                            webPort,
+                            basicAuthHandler,
+                            config);
         }
     }
 

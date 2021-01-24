@@ -21,6 +21,7 @@ package org.apache.flink.runtime.rest;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.runtime.io.network.netty.SSLHandlerFactory;
+import org.apache.flink.runtime.net.BasicAuth;
 import org.apache.flink.runtime.net.SSLUtils;
 import org.apache.flink.util.ConfigurationException;
 import org.apache.flink.util.Preconditions;
@@ -41,11 +42,14 @@ public final class RestClientConfiguration {
 
     private final int maxContentLength;
 
+    private final BasicAuth basicAuth;
+
     private RestClientConfiguration(
             @Nullable final SSLHandlerFactory sslHandlerFactory,
             final long connectionTimeout,
             final long idlenessTimeout,
-            final int maxContentLength) {
+            final int maxContentLength,
+            @Nullable BasicAuth basicAuth) {
         checkArgument(
                 maxContentLength > 0,
                 "maxContentLength must be positive, was: %s",
@@ -54,6 +58,7 @@ public final class RestClientConfiguration {
         this.connectionTimeout = connectionTimeout;
         this.idlenessTimeout = idlenessTimeout;
         this.maxContentLength = maxContentLength;
+        this.basicAuth = basicAuth;
     }
 
     /**
@@ -86,6 +91,15 @@ public final class RestClientConfiguration {
     }
 
     /**
+     * Returns basic authentication.
+     *
+     * @return basic authentication that the REST client endpoint use
+     */
+    public BasicAuth getBasicAuth() {
+        return basicAuth;
+    }
+
+    /**
      * Creates and returns a new {@link RestClientConfiguration} from the given {@link
      * Configuration}.
      *
@@ -114,9 +128,16 @@ public final class RestClientConfiguration {
 
         final long idlenessTimeout = config.getLong(RestOptions.IDLENESS_TIMEOUT);
 
-        int maxContentLength = config.getInteger(RestOptions.CLIENT_MAX_CONTENT_LENGTH);
+        final int maxContentLength = config.getInteger(RestOptions.CLIENT_MAX_CONTENT_LENGTH);
+
+        final BasicAuth basicAuth =
+                BasicAuth.fromConfiguration(
+                        config,
+                        RestOptions.BASIC_AUTH_REALM,
+                        RestOptions.BASIC_AUTH_USERNAME,
+                        RestOptions.BASIC_AUTH_PASSWORD);
 
         return new RestClientConfiguration(
-                sslHandlerFactory, connectionTimeout, idlenessTimeout, maxContentLength);
+                sslHandlerFactory, connectionTimeout, idlenessTimeout, maxContentLength, basicAuth);
     }
 }

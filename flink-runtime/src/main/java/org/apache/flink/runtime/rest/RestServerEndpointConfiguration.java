@@ -22,6 +22,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.configuration.WebOptions;
 import org.apache.flink.runtime.io.network.netty.SSLHandlerFactory;
+import org.apache.flink.runtime.net.BasicAuthHandler;
 import org.apache.flink.runtime.net.SSLUtils;
 import org.apache.flink.util.ConfigurationException;
 import org.apache.flink.util.Preconditions;
@@ -55,6 +56,8 @@ public final class RestServerEndpointConfiguration {
 
     private final Map<String, String> responseHeaders;
 
+    private final BasicAuthHandler basicAuthHandler;
+
     private RestServerEndpointConfiguration(
             final String restAddress,
             @Nullable String restBindAddress,
@@ -62,7 +65,8 @@ public final class RestServerEndpointConfiguration {
             @Nullable SSLHandlerFactory sslHandlerFactory,
             final Path uploadDir,
             final int maxContentLength,
-            final Map<String, String> responseHeaders) {
+            final Map<String, String> responseHeaders,
+            @Nullable BasicAuthHandler basicAuthHandler) {
 
         Preconditions.checkArgument(
                 maxContentLength > 0,
@@ -76,6 +80,7 @@ public final class RestServerEndpointConfiguration {
         this.uploadDir = requireNonNull(uploadDir);
         this.maxContentLength = maxContentLength;
         this.responseHeaders = Collections.unmodifiableMap(requireNonNull(responseHeaders));
+        this.basicAuthHandler = basicAuthHandler;
     }
 
     /** @see RestOptions#ADDRESS */
@@ -177,6 +182,13 @@ public final class RestServerEndpointConfiguration {
                         HttpHeaders.Names.ACCESS_CONTROL_ALLOW_ORIGIN,
                         config.getString(WebOptions.ACCESS_CONTROL_ALLOW_ORIGIN));
 
+        final BasicAuthHandler basicAuthHandler =
+                BasicAuthHandler.fromConfiguration(
+                        config,
+                        RestOptions.BASIC_AUTH_REALM,
+                        RestOptions.BASIC_AUTH_USERNAME,
+                        RestOptions.BASIC_AUTH_PASSWORD);
+
         return new RestServerEndpointConfiguration(
                 restAddress,
                 restBindAddress,
@@ -184,6 +196,18 @@ public final class RestServerEndpointConfiguration {
                 sslHandlerFactory,
                 uploadDir,
                 maxContentLength,
-                responseHeaders);
+                responseHeaders,
+                basicAuthHandler);
+    }
+
+    /**
+     * Returns the {@link BasicAuthHandler} that the REST server endpoint should use.
+     *
+     * @return BasicAuthHandler that the REST server endpoint should use, or null if basic
+     *     authentication was disabled
+     */
+    @Nullable
+    public BasicAuthHandler getBasicAuthHandler() {
+        return basicAuthHandler;
     }
 }

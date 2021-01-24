@@ -112,5 +112,25 @@ public class HistoryServerOptions {
                                             code("IllegalConfigurationException"))
                                     .build());
 
+    public static final ConfigOption<String> BASIC_AUTH_REALM =
+            key("historyserver.basic-auth.realm")
+                    .noDefaultValue()
+                    .withFallbackKeys(WebOptions.BASIC_AUTH_REALM.key())
+                    .withDescription(
+                            "Basic access authentication realm. Server side authentication is disabled "
+                                    + "when realm is empty which is the default setting.");
+
+    public static final ConfigOption<String> BASIC_AUTH_USERNAME =
+            key("historyserver.basic-auth.username")
+                    .noDefaultValue()
+                    .withFallbackKeys(WebOptions.BASIC_AUTH_USERNAME.key())
+                    .withDescription("Basic access authentication user name.");
+
+    public static final ConfigOption<String> BASIC_AUTH_PASSWORD =
+            key("historyserver.basic-auth.password")
+                    .noDefaultValue()
+                    .withFallbackKeys(WebOptions.BASIC_AUTH_PASSWORD.key())
+                    .withDescription("Basic access authentication password.");
+
     private HistoryServerOptions() {}
 }

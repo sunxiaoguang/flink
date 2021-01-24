@@ -24,6 +24,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.runtime.concurrent.FutureUtils;
 import org.apache.flink.runtime.io.network.netty.SSLHandlerFactory;
+import org.apache.flink.runtime.net.BasicAuthHandler;
 import org.apache.flink.runtime.net.RedirectingSslHandler;
 import org.apache.flink.runtime.rest.handler.PipelineErrorHandler;
 import org.apache.flink.runtime.rest.handler.RestHandlerSpecification;
@@ -42,6 +43,7 @@ import org.apache.flink.shaded.netty4.io.netty.channel.Channel;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelFuture;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelInboundHandler;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelInitializer;
+import org.apache.flink.shaded.netty4.io.netty.channel.ChannelPipeline;
 import org.apache.flink.shaded.netty4.io.netty.channel.EventLoopGroup;
 import org.apache.flink.shaded.netty4.io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.flink.shaded.netty4.io.netty.channel.socket.SocketChannel;
@@ -99,6 +101,8 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
 
     private State state = State.CREATED;
 
+    private BasicAuthHandler basicAuthHandler;
+
     public RestServerEndpoint(RestServerEndpointConfiguration configuration) throws IOException {
         Preconditions.checkNotNull(configuration);
 
@@ -106,6 +110,7 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
         this.restBindAddress = configuration.getRestBindAddress();
         this.restBindPortRange = configuration.getRestBindPortRange();
         this.sslHandlerFactory = configuration.getSslHandlerFactory();
+        this.basicAuthHandler = configuration.getBasicAuthHandler();
 
         this.uploadDir = configuration.getUploadDir();
         createUploadDir(uploadDir, log, true);
@@ -162,20 +167,20 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
                         protected void initChannel(SocketChannel ch) {
                             RouterHandler handler = new RouterHandler(router, responseHeaders);
 
+                            ChannelPipeline pipeline = ch.pipeline();
                             // SSL should be the first handler in the pipeline
                             if (isHttpsEnabled()) {
-                                ch.pipeline()
-                                        .addLast(
-                                                "ssl",
-                                                new RedirectingSslHandler(
-                                                        restAddress,
-                                                        restAddressFuture,
-                                                        sslHandlerFactory));
+                                pipeline.addLast(
+                                        "ssl",
+                                        new RedirectingSslHandler(
+                                                restAddress, restAddressFuture, sslHandlerFactory));
                             }
 
-                            ch.pipeline()
-                                    .addLast(new HttpServerCodec())
-                                    .addLast(new FileUploadHandler(uploadDir))
+                            pipeline.addLast(new HttpServerCodec());
+                            if (isBasicAuthEnabled()) {
+                                pipeline.addLast(basicAuthHandler);
+                            }
+                            pipeline.addLast(new FileUploadHandler(uploadDir))
                                     .addLast(
                                             new FlinkHttpObjectAggregator(
                                                     maxContentLength, responseHeaders))
@@ -677,5 +682,9 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
         CREATED,
         RUNNING,
         SHUTDOWN
+    }
+
+    private boolean isBasicAuthEnabled() {
+        return basicAuthHandler != null;
     }
 }
